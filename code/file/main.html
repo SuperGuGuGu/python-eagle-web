@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ch">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* 侧边栏样式 */
+        .sidebar {
+            height: 100%;
+            width: 15%;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            background-color: #EEE;
+            overflow-x: hidden;
+            padding-top: 20px;
+        }
+        /* 侧边栏链接样式 */
+        .sidebar a {
+            padding: 6px 8px 6px 16px;
+            text-decoration: none;
+            font-size: 18px;
+            color: #444;
+            display: block;
+            transition: 0.3s;
+        }
+        /* 侧边栏链接悬停样式 */
+        .sidebar a:hover {
+            background-color: #555;
+            color: #FFF;
+            border-radius: 10px; /* 10px的圆角 */
+        }
+        /* 资源库按钮样式 */
+        .sidebar .library {
+            display: inline-block;
+            width: 80%;
+            box-sizing: border-box;
+            text-align: left;
+            background-color: #EEE;
+            border-radius: 10px; /* 所有角都是10px的圆角 */
+            /* border: 2px solid #375FAD; 边框 */
+        }
+        /* 子菜单样式 */
+        .sidebar .submenu {
+            padding: 0px 0px 0px 5px;
+            display: none;
+            list-style-type: none;
+            background-color: #DDD;
+            border-radius: 10px; /* 所有角都是10px的圆角 */
+        }
+        /* 子菜单文件夹样式 */
+        .sidebar .folder img {
+            vertical-align: middle; /* 垂直对齐图片与文字 */
+        }
+        /* 子菜单链接样式 */
+        .sidebar .submenu a {
+            font-size: 15px;
+            padding: 6px 8px 6px 16px;
+        }
+        /* 展开按钮样式 */
+        .sidebar .toggler {
+            display: inline-block;
+            width: 50%;
+            box-sizing: border-box;
+            text-align: right;
+            background-color: #CCC;
+            border-radius: 10px; /* 所有角都是10px的圆角 */
+        }
+        /* 分割线样式 */
+        .sidebar hr {
+            margin: 5px 40% 5px 5%; /* 设置横线的上下外边距 */
+            border: none; /* 移除默认边框 */
+            border-top: 2px solid #BBB; /* 设置顶部边框为1px实线，颜色为#555 */
+        }
+        /* 分割线样式 */
+        .sidebar .library img {
+            vertical-align: middle; /* 垂直对齐图片与文字 */
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            display: flex;
+            align-items: center; /* 使导航栏内的内容垂直居中 */
+            background-color: #EEE;
+            overflow: hidden;
+            padding: 5px 10px;
+            border-radius: 10px; /* 10px的圆角 */
+            margin-right: 17%; /* 确保导航栏不会覆盖侧边栏 */
+            margin-left: 15%; /* 确保导航栏不会覆盖侧边栏 */
+        }
+        .navbar a {
+            float: left;
+            display: block;
+            color: #222;
+            background-color: #DDD;
+            border-radius: 10px; /* 10px的圆角 */
+            text-align: center;
+            padding: 5px 15px;
+            text-decoration: none;
+            font-size: 15px; /* 增加按钮文字大小 */
+            margin: 0 10px; /* 设置左右间隔为10像素 */
+        }
+        .navbar a:hover {
+            background-color: #CCC;
+            color: black;
+        }
+
+        /* 主要内容区域样式 */
+        .main-content {
+            margin-left: 15%; /* 与侧边栏宽度相同 */
+            padding: 3px 5px;
+        }
+
+        .main-content img {
+            max-width: 100%;
+            cursor: pointer;
+            margin-bottom: 3px;
+        }
+
+        .expanded-image {
+            position: absolute; /* 居中放置 */
+            top: 50px;
+            left: 15%;
+            right: 15%;
+            width: 68%; /* 放大图像 */
+            height: 90%;
+            object-fit: contain; /* 保存长宽比 */
+            z-index: 10; /* 将图片置顶 */
+        }
+
+        /* 切换隐藏 */
+        .hidden {
+            display: none; /* 隐藏其他图像 */
+        }
+
+        /* 侧边栏样式 */
+        .sidebar_right {
+            width: 15%;
+            background-color: #f4f4f4;
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100%;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        /* 侧边栏图片样式 */
+        .sidebar_right img {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        /* 侧边栏文字说明样式 */
+        .sidebar_right p {
+            margin: 0;
+            padding: 5px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+
+    </style>
+    <script>
+        // 当文档加载完毕时执行函数
+        document.addEventListener('DOMContentLoaded', function() {
+            // 折叠菜单逻辑
+            var toggler = document.getElementsByClassName("toggler");
+            for (var i = 0; i < toggler.length; i++) {
+                toggler[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var submenu = this.nextElementSibling;
+                    if (submenu) {
+                        if (submenu.style.display === "block") {
+                            submenu.style.display = "none";
+                        } else {
+                            submenu.style.display = "block";
+                        }
+                    }
+                });
+            }
+            // 折叠菜单逻辑
+            var library = document.getElementsByClassName("library");
+            for (var i = 0; i < library.length; i++) {
+                library[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var submenu = this.nextElementSibling;
+                    if (submenu) {
+                        if (submenu.style.display === "block") {
+                            submenu.style.display = "none";
+                        } else {
+                            submenu.style.display = "block";
+                        }
+                    }
+                });
+            }
+
+        });
+
+        // 放大并隐藏其他图片逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const images = document.querySelectorAll('.main-content img');
+            const sidebar_right = document.querySelector('.sidebar_right');
+            images.forEach(function(img) {
+                img.dataset.originalSrc = img.src;
+                img.dataset.newSrc = img.src.replace('/api/image/preview', '/api/image/image');
+                img.addEventListener('click', function() {
+                    const sidebarImg = sidebar_right.querySelector('img');
+
+                    if (img.src === img.dataset.originalSrc) {
+                        img.src = img.dataset.newSrc;
+                    } else {
+                        img.src = img.dataset.originalSrc;
+                    }
+
+                    if (img.classList.contains('expanded-image')) {
+                        img.classList.remove('expanded-image');
+                        images.forEach(function(img) {
+                            img.classList.remove('hidden');
+                        });
+
+                        sidebarImg.src = 'api/self_image/none_image.png';
+                    } else {
+                        images.forEach(function(img) {
+                            img.classList.remove('expanded-image');
+                            img.classList.add('hidden');
+                        });
+                        img.classList.remove('hidden');
+                        img.classList.add('expanded-image');
+
+                        sidebarImg.src = img.dataset.originalSrc;
+                    }
+                });
+            });
+        });
+
+        function uploadImage() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择一个图片文件');
+                return;
+            }
+
+            // 构造POST请求的body
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 发送POST请求到FastAPI后端
+            fetch('/upload_image', { // 假设FastAPI运行在端口8000
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+    <!-- replace -library- replace -->
+    <hr> <!-- -------- -->
+    <!-- replace -default_folder- replace -->
+    <hr> <!-- -------- -->
+    <!-- replace -folder- replace -->
+
+</div>
+
+<!-- 导航栏 -->
+<div class="navbar">
+    <!-- replace -navbar- replace -->
+</div>
+
+<!-- 图片区域 -->
+<div class="main-content">
+    <!-- replace -images- replace -->
+</div>
+
+<!-- 侧边栏 -->
+<div class="sidebar_right">
+    <img src="api/self_image/none_image.png" alt="Selected Image" />
+    <p></p>
+</div>
+
+
+<div>
+
+</div>
+
+</body>
+</html>
