@@ -115,7 +115,8 @@ async def eagle_web(order_by: str = None, folders: str = None):
             if len(folder_list) != 0:
                 to_html += '<a href="#" class="toggler">-----展开</a><ul class="submenu">'
             for folder in folder_list:
-                to_html += f'<a href="/?folders={folder["id"]}">{tier_text + folder["name"]}</a>'
+                to_html += (f'<a href="/?folders={folder["id"]}">{tier_text + folder["name"]}'
+                            f'<p class="folder-number">{folder["imageCount"]}</p></a>')
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
             if len(folder_list) != 0:
                 to_html += '</ul>'
@@ -124,7 +125,7 @@ async def eagle_web(order_by: str = None, folders: str = None):
                 to_html += (f'<a href="/?folders={folder["id"]}" class="folder">'
                             f'<img src="api/self_image/icon_folder.png" '
                             f'alt="Sidebar Image" style="width: 20px; height: auto;">'
-                            f'{tier_text + folder["name"]}</a>')
+                            f'{tier_text + folder["name"]}<p class="folder-number">{folder["imageCount"]}</p></a>')
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
         return to_html
 
