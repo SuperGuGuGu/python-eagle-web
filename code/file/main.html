@@ -109,6 +109,7 @@
         /* 主要内容区域样式 */
         .main-content {
             margin-left: 15%; /* 与侧边栏宽度相同 */
+            margin-right: 16%; /* 与侧边栏宽度相同 */
             padding: 3px 5px;
         }
 
@@ -237,17 +238,20 @@
         function uploadImage() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
+            const files = fileInput.files;
             if (!file) {
-                alert('请选择一个图片文件');
+                alert('未选择图片文件');
                 return;
             }
 
             // 构造POST请求的body
             const formData = new FormData();
-            formData.append('file', file);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
 
             // 发送POST请求到FastAPI后端
-            fetch('/upload_image', { // 假设FastAPI运行在端口8000
+            fetch('<!-- replace -images_upload_url- replace -->', {
                 method: 'POST',
                 body: formData
             })

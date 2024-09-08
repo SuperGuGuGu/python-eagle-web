@@ -157,8 +157,19 @@ async def eagle_web(order_by: str = None, folders: str = None):
     # ## 图片 ##
     images_html = ""
     params = {}
-    # if folders is not None:
-    item_list: list = eagle_api("/api/item/list")
+    if folders is not None:
+        item_list: list = eagle_api("/api/item/list", {"folders": folders})
+    else:
+        item_list: list = eagle_api("/api/item/list")
+
+    # 筛选文件夹
+    item_list2 = []
+    for item in item_list:
+        if item["isDeleted"] is True:
+            continue
+        item_list2.append(item)
+
+    item_list = item_list2
 
     # 排序
     if order_by is not None:
@@ -241,14 +252,17 @@ async def eagle_web(order_by: str = None, folders: str = None):
 
 
 @app.post("/upload_image")
-async def upload_files(file: UploadFile = File(...)):
-    file_content = await file.read()
-    logger.debug("post_image")
-    file_path = f"./image.png"  # 指定保存路径
-    with open(file_path, "wb") as image:
-        image.write(file_content)
-    logger.success("上传图片成功")
-    return {"filename": file.filename, "message": "File uploaded successfully"}
+async def upload_files(files: list[UploadFile] = File(...), folders: str = None):
+    if folders is not None:
+        logger.debug(f"上传至文件夹{folders}")
+    for file in files:
+        file_content = await file.read()
+        logger.debug("post_image")
+        file_path = f"./image_{file.filename}.png"  # 指定保存路径
+        with open(file_path, "wb") as image:
+            image.write(file_content)
+        logger.success("上传图片成功")
+    return {"filename": files[0].filename, "message": "File uploaded successfully"}
 
 
 @app.get("/upload")
@@ -298,13 +312,13 @@ async def eagle_web(folders: str = None):
             if len(folder_list) != 0:
                 to_html += '<a href="#" class="toggler">-----展开</a><ul class="submenu">'
             for folder in folder_list:
-                to_html += f'<a href="/?folders={folder["id"]}">{tier_text + folder["name"]}</a>'
+                to_html += f'<a href="/upload?folders={folder["id"]}">{tier_text + folder["name"]}</a>'
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
             if len(folder_list) != 0:
                 to_html += '</ul>'
         else:
             for folder in folder_list:
-                to_html += (f'<a href="/?folders={folder["id"]}" class="folder">'
+                to_html += (f'<a href="/upload?folders={folder["id"]}" class="folder">'
                             f'<img src="api/self_image/icon_folder.png" '
                             f'alt="Sidebar Image" style="width: 20px; height: auto;">'
                             f'{tier_text + folder["name"]}</a>')
@@ -320,11 +334,30 @@ async def eagle_web(folders: str = None):
     html_file = html_file.replace("<!-- replace -navbar- replace -->", navbar_html)
 
     # ## 上传 ##
+    def folder_list_to_path(folder_list: list, folder_id: str):
+        for folder in folder_list:
+            if folder_id == folder["id"]:
+                return folder['name']
+            if len(folder['children']) > 0:
+                path = folder_list_to_path(folder['children'], folder_id)
+                if path:
+                    return folder['name'] + '/' + path
+        return None
+
     upload_html = ""
+    folder_path = f"/{folder_list_to_path(folder_list, folders)}"
+    upload_html += f"<p>上传至文件夹：{folders}</p>"
+    upload_html += f"<p>路径：{folder_path}</p>"
+
     upload_html += (
-        '<input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadImage()">')
+        '<input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadImage()" multiple>')
     upload_html += (
-        '<button class="upload-btn" onclick="document.getElementById(' + "'fileInput'" + ').click()">上传图片</button>')
+            '<button class="upload-btn" onclick="document.getElementById(' + "'fileInput'" + ').click()">上传图片</button>')
+    upload_url = f"/upload_image"
+    if folders is not None:
+        upload_url += f"?folders={folders}"
+
+    html_file = html_file.replace("<!-- replace -images_upload_url- replace -->", upload_url)
     html_file = html_file.replace("<!-- replace -images- replace -->", upload_html)
 
     return HTMLResponse(html_file)
