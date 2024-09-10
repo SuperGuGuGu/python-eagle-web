@@ -49,10 +49,6 @@
             background-color: #DDD;
             border-radius: 10px; /* 所有角都是10px的圆角 */
         }
-        /* 子菜单文件夹样式 */
-        .sidebar .folder img {
-            vertical-align: middle; /* 垂直对齐图片与文字 */
-        }
         /* 子菜单链接样式 */
         .sidebar .submenu a {
             font-size: 15px;
@@ -64,8 +60,25 @@
             width: 50%;
             box-sizing: border-box;
             text-align: right;
-            background-color: #CCC;
+            /* background-color: #CCC; */
             border-radius: 10px; /* 所有角都是10px的圆角 */
+        }
+        /* 子菜单文件夹样式 */
+        .sidebar .folder img {
+            vertical-align: middle; /* 垂直对齐图片与文字 */
+        }
+        /* 子菜单文件夹样式 */
+        .sidebar .folder_self {
+            background-color: #888;
+            color: #FFF;
+            border-radius: 10px;
+        }
+        .folder-number {
+            float: right;
+            display: block;
+            color: #aaa;
+            text-align: center;
+            font-size: 10px; /* 增加按钮文字大小 */
         }
         /* 分割线样式 */
         .sidebar hr {
@@ -100,13 +113,6 @@
             text-decoration: none;
             font-size: 15px; /* 增加按钮文字大小 */
             margin: 0 10px; /* 设置左右间隔为10像素 */
-        }
-        .folder-number {
-            float: right;
-            display: block;
-            color: #aaa;
-            text-align: center;
-            font-size: 10px; /* 增加按钮文字大小 */
         }
         .navbar a:hover {
             background-color: #CCC;
@@ -296,7 +302,7 @@
 
 <!-- 侧边栏 -->
 <div class="sidebar_right">
-    <img src="api/self_image/none_image.png" alt="Selected Image" />
+    <img src="api/self_image/none_image.png" alt="Selected Image"/>
     <p></p>
 </div>
 

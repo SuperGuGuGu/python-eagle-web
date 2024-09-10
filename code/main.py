@@ -3,7 +3,7 @@ import os.path
 import random
 
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 import httpx
 import loguru
 from PIL import Image
@@ -96,11 +96,15 @@ async def eagle_web(order_by: str = None, folders: str = None):
             "icon": "api/self_image/icon_upload.png"
         },
     }
+    if folders is not None:
+        default_folders["上传"]["url"] += f"?folders={folders}"
     default_folder_html = ""
     for folder in default_folders.keys():
-        default_folder_html += (f'<a href="{default_folders[folder]["url"]}" class="folder">'
-                                f'<img src="{default_folders[folder]["icon"]}" alt="{folder}" '
-                                f'style="width: 20px; height: auto;">{folder}</a>')
+        default_folder_html += (
+            f'<a href="{default_folders[folder]["url"]}" class="folder">'
+            f'<img src="{default_folders[folder]["icon"]}" alt="{folder}" style="width: 20px; height: auto;">'
+            f'{folder}'
+            f'</a>')
 
     html_file = html_file.replace("<!-- replace -default_folder- replace -->", default_folder_html)
 
@@ -115,17 +119,24 @@ async def eagle_web(order_by: str = None, folders: str = None):
             if len(folder_list) != 0:
                 to_html += '<a href="#" class="toggler">-----展开</a><ul class="submenu">'
             for folder in folder_list:
-                to_html += (f'<a href="/?folders={folder["id"]}">{tier_text + folder["name"]}'
-                            f'<p class="folder-number">{folder["imageCount"]}</p></a>')
+                to_html += (
+                    f'<a href="/?folders={folder["id"]}">'
+                    f'{tier_text + folder["name"]}'
+                    f'<p class="folder-number">{folder["imageCount"]}</p></a>')
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
             if len(folder_list) != 0:
                 to_html += '</ul>'
         else:
             for folder in folder_list:
-                to_html += (f'<a href="/?folders={folder["id"]}" class="folder">'
+                to_html += (f'<a href="/?folders={folder["id"]}" '
+                            f'class="{"folder_self" if folders == folder["id"] else "folder"}">'
                             f'<img src="api/self_image/icon_folder.png" '
                             f'alt="Sidebar Image" style="width: 20px; height: auto;">'
-                            f'{tier_text + folder["name"]}<p class="folder-number">{folder["imageCount"]}</p></a>')
+                            f'{tier_text + folder["name"]}'
+                            f'<p class="folder-number">'
+                            f'{folder["imageCount"]}'
+                            f'</p>'
+                            f'</a>')
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
         return to_html
 
@@ -256,14 +267,37 @@ async def eagle_web(order_by: str = None, folders: str = None):
 async def upload_files(files: list[UploadFile] = File(...), folders: str = None):
     if folders is not None:
         logger.debug(f"上传至文件夹{folders}")
+    upload_data = {
+        "items": [],
+        "folderId": folders,
+        "token": eagle_db_data["token"]
+    }
+    upload_path = os.path.abspath('.') + "/cache/upload_cache"
+    os.makedirs(upload_path, exist_ok=True)
+    num = 0
     for file in files:
+        num += 1
         file_content = await file.read()
-        logger.debug("post_image")
-        file_path = f"./image_{file.filename}.png"  # 指定保存路径
+        file_name = f"upload_{num}_{file.filename}.png"
+        file_path = f"{upload_path}/{file_name}"
         with open(file_path, "wb") as image:
             image.write(file_content)
-        logger.success("上传图片成功")
-    return {"filename": files[0].filename, "message": "File uploaded successfully"}
+        upload_data["items"].append({
+            "name": file_name,
+            "path": file_path
+        })
+    logger.debug(f"上传图片信息：{upload_data}")
+    url = f"{eagle_url}/api/item/addFromPaths"
+    data = httpx.post(url, json=upload_data).content
+    if json.loads(data)["status"] == "success":
+        logger.success("上传成功")
+    else:
+        logger.error("上传失败")
+        logger.error(data)
+    for image_data in upload_data["items"]:
+        os.remove(image_data["path"])
+    # eagle貌似没有提供相同图片处理办法，只能在客户端解决是否保存相同图片。
+    return {"status": "success"}
 
 
 @app.get("/upload")
@@ -294,6 +328,9 @@ async def eagle_web(folders: str = None):
             "icon": "api/self_image/icon_all.png"
         },
     }
+    if folders is not None:
+        default_folders["返回资源库"]["url"] += f"?folders={folders}"
+
     default_folder_html = ""
     for folder in default_folders.keys():
         default_folder_html += (f'<a href="{default_folders[folder]["url"]}" class="folder">'
