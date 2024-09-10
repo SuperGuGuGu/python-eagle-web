@@ -1,13 +1,12 @@
 import json
 import os.path
 import random
-
+import toml
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
 import httpx
 import loguru
 from PIL import Image
-
 from nonebot import logger
 
 
@@ -16,16 +15,30 @@ def _log_patcher(record: "loguru.Record"):
     record["name"] = module_name and module_name.split(".")[0]
 
 
-log_level = "DEBUG"
-logger.configure(extra={"nonebot_log_level": log_level}, patcher=_log_patcher)
-
+# 读取配置
 base_path = "."
-eagle_cache = f"{base_path}/cache"
-eagle_url = "http://127.0.0.1:41595"
-eagle_db_data = {
-    "token": "9434ca08-fa1e-4e31-a79d-3b9f984da0eb",
-    "images": {}
+os.makedirs(base_path, exist_ok=True)
+default_config = {
+    "eagle_url": "http://127.0.0.1:41595",
+    # "eagle_path": "./eagle",  # 自动读取路径,无需填写
+    "eagle_cache": "{base_path}/cache",
+    "token": "eagle_token",
+    "log_level": "info"
 }
+config_path = f"{base_path}/config.toml"
+if not os.path.exists(config_path):
+    config = default_config
+    with open(config_path, 'w') as config_file:
+        toml.dump(config, config_file)
+else:
+    config = toml.load(config_path)
+# 检查配置
+if config["token"] == "eagle_token":
+    logger.error(f"未配置token，请在{base_path}/config.toml配置token")
+    raise "请配置eagle token"
+
+config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
+logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 
 
 def eagle_api(path: str, params=None):
@@ -33,9 +46,9 @@ def eagle_api(path: str, params=None):
         params = {}
     if not path.startswith("/"):
         path = "/" + path
-    params["token"] = eagle_db_data["token"]
+    params["token"] = config["token"]
     logger.debug(f"请求eagle_api:{path}, params:{params}")
-    data = httpx.get(f"{eagle_url}{path}", params=params).content
+    data = httpx.get(f"{config['eagle_url']}{path}", params=params).content
     json_data = json.loads(data)
     if json_data["status"] != "success":
         logger.error(f"api请求错误{path}")
@@ -44,7 +57,7 @@ def eagle_api(path: str, params=None):
     return json_data["data"]
 
 
-eagle_db_data["file_path"] = eagle_api("/api/library/info")["library"]["path"]
+config["eagle_path"] = eagle_api("/api/library/info")["library"]["path"]
 app = FastAPI()
 
 
@@ -270,7 +283,7 @@ async def upload_files(files: list[UploadFile] = File(...), folders: str = None)
     upload_data = {
         "items": [],
         "folderId": folders,
-        "token": eagle_db_data["token"]
+        "token": config["token"]
     }
     upload_path = os.path.abspath('.') + "/cache/upload_cache"
     os.makedirs(upload_path, exist_ok=True)
@@ -287,7 +300,7 @@ async def upload_files(files: list[UploadFile] = File(...), folders: str = None)
             "path": file_path
         })
     logger.debug(f"上传图片信息：{upload_data}")
-    url = f"{eagle_url}/api/item/addFromPaths"
+    url = f"{config['eagle_url']}/api/item/addFromPaths"
     data = httpx.post(url, json=upload_data).content
     if json.loads(data)["status"] == "success":
         logger.success("上传成功")
@@ -419,7 +432,7 @@ async def eagle_web(image_name: str):
 
 @app.get("/api/image/{image_type}")
 async def eagle_web(image_type: str, image_id: str, image_name: str):
-    eagle_path = eagle_db_data["file_path"]
+    eagle_path = config["eagle_path"]
 
     if not os.path.exists(f"{eagle_path}/images"):
         logger.error(f"不存在此库{eagle_path}")
@@ -435,7 +448,7 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
     if image_type == "image":
         return FileResponse(f"{eagle_path}/images/{image_id}.info/{image_name}")
     elif image_type == "preview":
-        path = f"{eagle_cache}/{eagle_path.replace(':', '')}/"
+        path = f"{config['eagle_cache']}/{eagle_path.replace(':', '')}/"
         if not os.path.exists(path):
             os.makedirs(path)
         path += image_name
