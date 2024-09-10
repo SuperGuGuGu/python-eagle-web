@@ -23,7 +23,7 @@ default_config = {
     # "eagle_path": "./eagle",  # 自动读取路径,无需填写
     "eagle_cache": "{base_path}/cache",
     "token": "eagle_token",
-    "log_level": "info"
+    "log_level": "INFO"
 }
 config_path = f"{base_path}/config.toml"
 if not os.path.exists(config_path):
