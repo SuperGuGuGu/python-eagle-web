@@ -1,5 +1,5 @@
 import json
-import os.path
+import os
 import random
 import toml
 from fastapi import FastAPI, UploadFile, File

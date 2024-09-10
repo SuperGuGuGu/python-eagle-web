@@ -1,0 +1,6 @@
+fastapi==0.112.2
+httpx==0.27.2
+loguru==0.7.2
+nonebot2==2.3.3
+Pillow==10.4.0
+toml==0.10.2
