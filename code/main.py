@@ -61,6 +61,11 @@ config["eagle_path"] = eagle_api("/api/library/info")["library"]["path"]
 app = FastAPI()
 
 
+@app.get("/favicon.ico")
+async def eagle_web():
+    return FileResponse("./file/favicon.ico")
+
+
 @app.get("/")
 async def eagle_web(order_by: str = None, folders: str = None):
     file = open(f"{base_path}/file/main.html", "r", encoding="UTF-8")
