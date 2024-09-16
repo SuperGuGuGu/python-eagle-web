@@ -479,7 +479,7 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
         path = f"{config['eagle_cache']}/{eagle_path.replace(':', '')}/"
         if not os.path.exists(path):
             os.makedirs(path)
-        path += image_name
+        path += f"{image_id}.png"
         if not os.path.exists(path):
             if os.path.exists(f"{eagle_path}/images/{image_id}.info/{image_name.replace('.', '_thumbnail.')}"):
                 image = Image.open(f"{eagle_path}/images/{image_id}.info/{image_name.replace('.', '_thumbnail.')}")
