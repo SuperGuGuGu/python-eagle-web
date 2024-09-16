@@ -41,7 +41,7 @@ config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 
 
-def eagle_api(path: str, params=None):
+def eagle_api(path: str, params=None) -> dict | list:
     if params is None:
         params = {}
     if not path.startswith("/"):
@@ -269,6 +269,23 @@ async def eagle_web(order_by: str = None, folders: str = None):
             item_list = item_list2
 
     # 组装图片html
+    def get_children_folder(folder_list, folder_id):
+        for folder in folder_list:
+            if folder["id"] == folder_id:
+                return folder["children"]
+        return []
+
+    children_folder_list = get_children_folder(folder_list, folders)
+    if children_folder_list:
+        for folder in children_folder_list:
+            images_html += (f'<div>'
+                            f'<a href="/?folders={folder["id"]}">'
+                            f'<p>132123</p>'
+                            f'<img src="/api/self_image/folder.png" alt="folder.png" style="margin: 3px;">'
+                            f'</a>'
+                            f'</div>')
+
+        images_html += "<hr> <!-- -------- -->"
     for data in item_list:
         if data["isDeleted"] is True:
             continue

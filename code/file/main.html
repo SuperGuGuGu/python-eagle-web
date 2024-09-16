@@ -97,7 +97,7 @@
             align-items: center; /* 使导航栏内的内容垂直居中 */
             background-color: #EEE;
             overflow: hidden;
-            padding: 5px 10px;
+            padding: 5px 1px;
             border-radius: 10px; /* 10px的圆角 */
             margin-right: 17%; /* 确保导航栏不会覆盖侧边栏 */
             margin-left: 15%; /* 确保导航栏不会覆盖侧边栏 */
@@ -109,10 +109,10 @@
             background-color: #DDD;
             border-radius: 10px; /* 10px的圆角 */
             text-align: center;
-            padding: 5px 15px;
+            padding: 5px 5px;
             text-decoration: none;
             font-size: 15px; /* 增加按钮文字大小 */
-            margin: 0 10px; /* 设置左右间隔为10像素 */
+            margin: 0 0.5%; /* 设置左右间隔为10像素 */
         }
         .navbar a:hover {
             background-color: #CCC;
@@ -227,22 +227,24 @@
                         img.src = img.dataset.originalSrc;
                     }
 
-                    if (img.classList.contains('expanded-image')) {
-                        img.classList.remove('expanded-image');
-                        images.forEach(function(img) {
-                            img.classList.remove('hidden');
-                        });
-
-                        sidebarImg.src = 'api/self_image/none_image.png';
-                    } else {
-                        images.forEach(function(img) {
+                    if (!img.src.includes('folder.png')) {
+                        if (img.classList.contains('expanded-image')) {
                             img.classList.remove('expanded-image');
-                            img.classList.add('hidden');
-                        });
-                        img.classList.remove('hidden');
-                        img.classList.add('expanded-image');
+                            images.forEach(function(img) {
+                                img.classList.remove('hidden');
+                            });
 
-                        sidebarImg.src = img.dataset.originalSrc;
+                            sidebarImg.src = 'api/self_image/none_image.png';
+                        } else {
+                            images.forEach(function(img) {
+                                img.classList.remove('expanded-image');
+                                img.classList.add('hidden');
+                            });
+                            img.classList.remove('hidden');
+                            img.classList.add('expanded-image');
+
+                            sidebarImg.src = img.dataset.originalSrc;
+                        }
                     }
                 });
             });
