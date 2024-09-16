@@ -268,7 +268,7 @@ async def eagle_web(order_by: str = None, folders: str = None):
                 item_list2.append(item_list[num])
             item_list = item_list2
 
-    # 组装图片html
+    # 添加子文件夹html
     def get_children_folder(folder_list, folder_id):
         for folder in folder_list:
             if folder["id"] == folder_id:
@@ -278,14 +278,20 @@ async def eagle_web(order_by: str = None, folders: str = None):
     children_folder_list = get_children_folder(folder_list, folders)
     if children_folder_list:
         for folder in children_folder_list:
-            images_html += (f'<div>'
-                            f'<a href="/?folders={folder["id"]}">'
-                            f'<p>132123</p>'
-                            f'<img src="/api/self_image/folder.png" alt="folder.png" style="margin: 3px;">'
-                            f'</a>'
-                            f'</div>')
+            images_html += (
+                f'<div>'
+                f'<a href="/?folders={folder["id"]}" style="position: relative;">'
+                f'<img src="/api/self_image/folder.png" '
+                f'alt="folder.png" style="margin: 3px;">'
+                f'<p style="position: absolute; top: -50px; left: 48%; transform: translate(-50%, -50%); color: #222;">'
+                f'{folder["name"]}'
+                f'</p>'
+                f'</a>'
+                f'</div>')
 
         images_html += "<hr> <!-- -------- -->"
+
+    # 添加图片html
     for data in item_list:
         if data["isDeleted"] is True:
             continue
