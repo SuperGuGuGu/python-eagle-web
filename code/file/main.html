@@ -215,6 +215,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const images = document.querySelectorAll('.main-content img');
             const sidebar_right = document.querySelector('.sidebar_right');
+            const sidebarText = sidebar_right.querySelector('p'); // 获取侧边栏文字元素
             images.forEach(function(img) {
                 img.dataset.originalSrc = img.src;
                 img.dataset.newSrc = img.src.replace('/api/image/preview', '/api/image/image');
@@ -235,6 +236,7 @@
                             });
 
                             sidebarImg.src = 'api/self_image/none_image.png';
+                            sidebarText.textContent = '';
                         } else {
                             images.forEach(function(img) {
                                 img.classList.remove('expanded-image');
@@ -244,6 +246,7 @@
                             img.classList.add('expanded-image');
 
                             sidebarImg.src = img.dataset.originalSrc;
+                            sidebarText.textContent = img.alt; // 更新文字
                         }
                     }
                 });
@@ -306,11 +309,6 @@
 <div class="sidebar_right">
     <img src="api/self_image/none_image.png" alt="Selected Image"/>
     <p></p>
-</div>
-
-
-<div>
-
 </div>
 
 </body>
