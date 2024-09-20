@@ -281,8 +281,7 @@ async def eagle_web(order_by: str = None, folders: str = None):
             images_html += (
                 f'<div>'
                 f'<a href="/?folders={folder["id"]}" style="position: relative;">'
-                f'<img src="/api/self_image/folder.png" '
-                f'alt="folder.png" style="margin: 3px;">'
+                f'<img src="/api/self_image/folder.png" alt="folder.png"">'
                 f'<p style="position: absolute; top: -50px; left: 48%; transform: translate(-50%, -50%); color: #222;">'
                 f'{folder["name"]}'
                 f'</p>'
@@ -295,9 +294,9 @@ async def eagle_web(order_by: str = None, folders: str = None):
     for data in item_list:
         if data["isDeleted"] is True:
             continue
-        images_html += (f'<img src="/api/image/preview?image_id={data["id"]}&amp;'
-                        f'image_name={data["name"]}.{data["ext"]}" alt="{data["name"]}" '
-                        f'style="margin: 3px;">')
+        images_html += (
+            f'<img src="/api/image/preview?image_id={data["id"]}&amp;image_name={data["name"]}.{data["ext"]}" '
+            f'alt="{data["name"]}">')
 
     html_file = html_file.replace("<!-- replace -images- replace -->", images_html)
 
@@ -489,6 +488,12 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
             x = 150
             y = int(h * x / w)
             image = image.resize((x, y))
+            if y > 300:
+                paste_image = image.copy()
+                image = Image.new("RGBA", (150, 300), (0, 0, 0, 0))
+                image.paste(paste_image, (0, -int((y - 300) / 2)))
+
+
             image.save(path)
         return FileResponse(path)
     raise "none"
