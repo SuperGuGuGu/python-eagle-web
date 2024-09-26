@@ -23,7 +23,8 @@ default_config = {
     # "eagle_path": "./eagle",  # 自动读取路径,无需填写
     "eagle_cache": "{base_path}/cache",
     "token": "eagle_token",
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "library_path_list": []
 }
 config_path = f"{base_path}/config.toml"
 if not os.path.exists(config_path):
@@ -41,33 +42,60 @@ config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 
 
-def eagle_api(path: str, params=None) -> dict | list:
+def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list:
     if params is None:
         params = {}
     if not path.startswith("/"):
         path = "/" + path
     params["token"] = config["token"]
-    logger.debug(f"请求eagle_api:{path}, params:{params}")
-    data = httpx.get(f"{config['eagle_url']}{path}", params=params).content
-    json_data = json.loads(data)
+    logger.debug(f"请求eagle_api:{path}, params:{params}, connect_type:{connect_type}")
+    if connect_type == "get":
+        data = httpx.get(f"{config['eagle_url']}{path}", params=params).content
+    elif connect_type == "post":
+        data = httpx.post(f"{config['eagle_url']}{path}", json=params).content
+    else:
+        raise "请求方式不存在"
+    json_data: dict = json.loads(data)
     if json_data["status"] != "success":
         logger.error(f"api请求错误{path}")
         logger.error(json_data)
         raise "api请求错误"
-    return json_data["data"]
+    return json_data.get("data")
 
 
-config["eagle_path"] = eagle_api("/api/library/info")["library"]["path"]
+def raload_library(library_path: str):
+    params = {"libraryPath": library_path}
+    eagle_api("/api/library/switch", params=params, connect_type="post")
+
+    library_info = eagle_api("/api/library/info")
+    config["eagle_path"] = library_info["library"]["path"]
+    config["library_path"] = config["library_path_list"].copy()
+    if (library_info["library"]["path"] in config["library_path_list"] or
+            library_info["library"]["path"].replace("\\", "/") in config["library_path_list"]):
+        config["library_path"].remove(library_info["library"]["path"])
+
+
+library_info = eagle_api("/api/library/info")
+config["eagle_path"] = library_info["library"]["path"]
+config["library_path"] = config["library_path_list"].copy()
+if (library_info["library"]["path"] in config["library_path_list"] or
+        library_info["library"]["path"].replace("\\", "/") in config["library_path_list"]):
+    config["library_path"].remove(library_info["library"]["path"])
+
 app = FastAPI()
 
 
 @app.get("/favicon.ico")
 async def eagle_web():
-    return FileResponse("./file/favicon.ico")
+    return FileResponse(f"{base_path}/file/favicon.ico")
 
 
 @app.get("/")
-async def eagle_web(order_by: str = None, folders: str = None):
+async def eagle_web(order_by: str = None, folders: str = None, library_path: str = None):
+    if library_path is not None and library_path != config["eagle_path"]:
+        logger.warning("重新加载资源库数据")
+        raload_library(library_path)
+
     file = open(f"{base_path}/file/main.html", "r", encoding="UTF-8")
     html_file = file.read()
     file.close()
@@ -83,12 +111,22 @@ async def eagle_web(order_by: str = None, folders: str = None):
                     '<img src="api/self_image/icon.png" alt="Sidebar Image" style="width: 30px; height: auto;">'
                     f'{library_data["library"]["name"]}</a>')
 
-    # 资源库列表（eagle_api失效）
-    # library_list = []
-    # library_html += '<ul class="submenu">'
-    # for library in library_list:
-    #     library_html += f'<li><a href="#">{library["name"]}</a></li>'
-    # library_html += '</ul>'
+    # 资源库列表
+    library_path_list = config["library_path"]
+    library_html += '<ul class="submenu">'
+    for library in library_path_list:
+        library_name = library.split('/')[-1].split('\\')[-1].removesuffix('.library')
+        library_path = library if len(library) <= 25 else library[:5] + " ... " + library[-15:]
+        library_html += (f'<li>'
+                         f'<a href="/?library_path={library}">'
+                         f'{library_name}'
+                         f'<p class="library-path">'
+                         f'{library_path}'
+                         f'</p>'
+                         f'</a>'
+                         f'</li>')
+    library_html += '</ul>'
+
     html_file = html_file.replace("<!-- replace -library- replace -->", library_html)
 
     # ## 默认文件夹 ##
