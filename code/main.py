@@ -42,7 +42,7 @@ config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 
 
-def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list:
+def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list | None:
     if params is None:
         params = {}
     if not path.startswith("/"):
@@ -224,7 +224,6 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
 
     # ## 图片 ##
     images_html = ""
-    params = {}
     if folders is not None:
         item_list: list = eagle_api("/api/item/list", {"folders": folders})
     else:
