@@ -95,6 +95,10 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
     if library_path is not None and library_path != config["eagle_path"]:
         logger.warning("重新加载资源库数据")
         raload_library(library_path)
+    if order_by is not None and order_by == "None":
+        order_by = None
+    if folders is not None and folders == "None":
+        folders = None
 
     file = open(f"{base_path}/file/main.html", "r", encoding="UTF-8")
     html_file = file.read()
@@ -176,7 +180,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
                 to_html += '<a href="#" class="toggler">-----展开</a><ul class="submenu">'
             for folder in folder_list:
                 to_html += (
-                    f'<a href="/?folders={folder["id"]}">'
+                    f'<a href="/?folders={folder["id"]}&order_by={order_by}">'
                     f'{tier_text + folder["name"]}'
                     f'<p class="folder-number">{folder["imageCount"]}</p></a>')
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
@@ -184,7 +188,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
                 to_html += '</ul>'
         else:
             for folder in folder_list:
-                to_html += (f'<a href="/?folders={folder["id"]}" '
+                to_html += (f'<a href="/?folders={folder["id"]}&order_by={order_by}" '
                             f'class="{"folder_self" if folders == folder["id"] else "folder"}">'
                             f'<img src="api/self_image/icon_folder.png" '
                             f'alt="Sidebar Image" style="width: 20px; height: auto;">'
@@ -213,13 +217,13 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
         "random": "随机",
     }
     for sort_name in navbar_list.keys():
-        if order_by is not None and order_by == sort_name and sort_name != "random":
-            if reverse is True:
-                navbar_html += f'<a href="/?order_by={sort_name}">{navbar_list[sort_name]} ▼</a>'
+        if order_by is not None and order_by == sort_name:
+            if reverse is True or sort_name == "random":
+                navbar_html += f'<a href="/?order_by={sort_name}&folders={folders}">{navbar_list[sort_name]} ▼</a>'
             else:
-                navbar_html += f'<a href="/?order_by=-{sort_name}">{navbar_list[sort_name]} ▲</a>'
+                navbar_html += f'<a href="/?order_by=-{sort_name}&folders={folders}">{navbar_list[sort_name]} ▲</a>'
         else:
-            navbar_html += f'<a href="/?order_by={sort_name}">{navbar_list[sort_name]}</a>'
+            navbar_html += f'<a href="/?order_by={sort_name}&folders={folders}">{navbar_list[sort_name]}</a>'
     html_file = html_file.replace("<!-- replace -navbar- replace -->", navbar_html)
 
     # ## 图片 ##
@@ -317,7 +321,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
         for folder in children_folder_list:
             images_html += (
                 f'<div>'
-                f'<a href="/?folders={folder["id"]}" style="position: relative;">'
+                f'<a href="/?folders={folder["id"]}&order_by={order_by}" style="position: relative;">'
                 f'<img src="/api/self_image/folder.png" alt="folder.png"">'
                 f'<p style="position: absolute; top: -50px; left: 48%; transform: translate(-50%, -50%); color: #222;">'
                 f'{folder["name"]}'
@@ -332,7 +336,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
         if data["isDeleted"] is True:
             continue
         images_html += (
-            f'<img src="/api/image/preview?image_id={data["id"]}&amp;image_name={data["name"]}.{data["ext"]}" '
+            f'<img src="/api/image/preview?image_id={data["id"]}&image_name={data["name"]}.{data["ext"]}" '
             f'alt="{data["name"]}">')
 
     html_file = html_file.replace("<!-- replace -images- replace -->", images_html)
