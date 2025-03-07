@@ -2,18 +2,15 @@ import asyncio
 import json
 import os
 import random
+import time
 import toml
+import uvicorn
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
 import httpx
-import loguru
 from PIL import Image
 from nonebot import logger
-
-
-def _log_patcher(record: "loguru.Record"):
-    module_name = record["name"]
-    record["name"] = module_name and module_name.split(".")[0]
+import nonebot
 
 
 # 读取配置
@@ -41,6 +38,8 @@ if config["token"] == "eagle_token":
 
 config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
+nonebot.init(log_level=config["log_level"])
+
 httpx_client = httpx.AsyncClient()
 
 
@@ -88,6 +87,7 @@ async def run_when_starting_up():
             library_info["library"]["path"].replace("\\", "/") in config["library_path_list"]):
         config["library_path"].remove(library_info["library"]["path"])
 
+
 app = FastAPI()
 
 
@@ -106,9 +106,8 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
     if folders is not None and folders == "None":
         folders = None
 
-    file = open(f"{base_path}/file/main.html", "r", encoding="UTF-8")
-    html_file = file.read()
-    file.close()
+    with open(f"{base_path}/file/main.html", "r", encoding="UTF-8") as file:
+        html_file = file.read()
     reverse = False
     if order_by is not None:
         reverse = True if order_by.startswith("-") else False
@@ -537,14 +536,16 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
                 image = Image.open(thumbnail_path)
             elif os.path.exists(thumbnail_path_2):
                 image = Image.open(thumbnail_path_2)
-            elif not any(True for ext in [".jpg", ".png", ".webp", ".jpeg", ".tif", ".tiff"] if ext in image_name.lower()):
-                return FileResponse("./file/error_image.png")
+            elif not any(
+                    True for ext in [".jpg", ".png", ".webp", ".jpeg", ".tif", ".tiff"] if ext in image_name.lower()):
+                return FileResponse("./file/error_image.png", headers={"Cache-Control": "no-cache"})
             else:
                 try:
                     image = Image.open(f"{eagle_path}/images/{image_id}.info/{image_name}")
                 except Exception as e:
+                    logger.error(f"{eagle_path}/images/{image_id}.info/{image_name}")
                     logger.error("打开图片错误")
-                    return FileResponse("./file/error_image.png")
+                    return FileResponse("./file/error_image.png", headers={"Cache-Control": "no-cache"})
             w, h = image.size
             x = 150
             y = int(h * x / w)
@@ -553,7 +554,6 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
                 paste_image = image.copy()
                 image = Image.new("RGBA", (150, 300), (0, 0, 0, 0))
                 image.paste(paste_image, (0, -int((y - 300) / 2)))
-
 
             image.save(path)
         return FileResponse(path)
@@ -570,4 +570,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8080,
     )
-
