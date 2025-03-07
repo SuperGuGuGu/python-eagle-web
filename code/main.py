@@ -37,14 +37,19 @@ if config["token"] == "eagle_token":
     raise "请配置eagle token"
 
 config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
-logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 nonebot.init(log_level=config["log_level"])
 
+api_cache = {}
 httpx_client = httpx.AsyncClient()
 
 
 async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache=False) -> dict | list | None:
     global httpx_client
+    if path not in api_cache.keys():
+        api_cache[path] = {"time": 0, "data": {}}
+    if int(time.time()) - api_cache[path]["time"] < 600 and use_cache is True:
+        return api_cache[path]["data"]
+
     if params is None:
         params = {}
     if not path.startswith("/"):
@@ -64,6 +69,8 @@ async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache
         logger.error(f"api请求错误{path}")
         logger.error(json_data)
         raise "api请求错误"
+
+    api_cache[path] = {"time": int(time.time()), "data": json_data.get("data")}
     return json_data.get("data")
 
 
