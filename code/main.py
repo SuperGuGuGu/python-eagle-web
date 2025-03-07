@@ -41,6 +41,7 @@ if config["token"] == "eagle_token":
 
 config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
+httpx_client = httpx.AsyncClient()
 
 
 async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache=False) -> dict | list | None:
