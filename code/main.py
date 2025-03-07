@@ -43,8 +43,8 @@ config["eagle_cache"] = config["eagle_cache"].replace("{base_path}", base_path)
 logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_patcher)
 
 
-def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list | None:
 async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache=False) -> dict | list | None:
+    global httpx_client
     if params is None:
         params = {}
     if not path.startswith("/"):
@@ -52,9 +52,11 @@ async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache
     params["token"] = config["token"]
     logger.debug(f"请求eagle_api:{path}, params:{params}, connect_type:{connect_type}")
     if connect_type == "get":
-        data = httpx.get(f"{config['eagle_url']}{path}", params=params).content
+        data = await httpx_client.get(f"{config['eagle_url']}{path}", params=params)
+        data = data.content
     elif connect_type == "post":
-        data = httpx.post(f"{config['eagle_url']}{path}", json=params).content
+        data = await httpx_client.post(f"{config['eagle_url']}{path}", json=params)
+        data = data.content
     else:
         raise "请求方式不存在"
     json_data: dict = json.loads(data)
@@ -348,6 +350,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
 
 @app.post("/upload_image")
 async def upload_files(files: list[UploadFile] = File(...), folders: str = None):
+    global httpx_client
     if folders is not None:
         logger.debug(f"上传至文件夹{folders}")
     upload_data = {
@@ -371,7 +374,8 @@ async def upload_files(files: list[UploadFile] = File(...), folders: str = None)
         })
     logger.debug(f"上传图片信息：{upload_data}")
     url = f"{config['eagle_url']}/api/item/addFromPaths"
-    data = httpx.post(url, json=upload_data).content
+    data = await httpx_client.post(url, json=upload_data)
+    data = data.content
     if json.loads(data)["status"] == "success":
         logger.success("上传成功")
     else:
