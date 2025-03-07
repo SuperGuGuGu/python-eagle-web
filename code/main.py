@@ -550,3 +550,14 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
             image.save(path)
         return FileResponse(path)
     raise "none"
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8080,
+    )
+
