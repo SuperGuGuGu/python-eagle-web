@@ -521,10 +521,23 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
             os.makedirs(path)
         path += f"{image_id}.png"
         if not os.path.exists(path):
-            if os.path.exists(f"{eagle_path}/images/{image_id}.info/{image_name.replace('.', '_thumbnail.')}"):
-                image = Image.open(f"{eagle_path}/images/{image_id}.info/{image_name.replace('.', '_thumbnail.')}")
+            image_path = f"{eagle_path}/images/{image_id}.info"
+            thumbnail_path = f"{image_path}/{image_name.replace('.', '_thumbnail.')}"
+            name2 = image_name.removesuffix(f".{image_name.split('.')[1]}") + "_thumbnail.png"
+            thumbnail_path_2 = f"{image_path}/{name2}"
+
+            if os.path.exists(thumbnail_path):
+                image = Image.open(thumbnail_path)
+            elif os.path.exists(thumbnail_path_2):
+                image = Image.open(thumbnail_path_2)
+            elif not any(True for ext in [".jpg", ".png", ".webp", ".jpeg", ".tif", ".tiff"] if ext in image_name.lower()):
+                return FileResponse("./file/error_image.png")
             else:
-                image = Image.open(f"{eagle_path}/images/{image_id}.info/{image_name}")
+                try:
+                    image = Image.open(f"{eagle_path}/images/{image_id}.info/{image_name}")
+                except Exception as e:
+                    logger.error("打开图片错误")
+                    return FileResponse("./file/error_image.png")
             w, h = image.size
             x = 150
             y = int(h * x / w)
