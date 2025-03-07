@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import random
@@ -43,6 +44,7 @@ logger.configure(extra={"nonebot_log_level": config["log_level"]}, patcher=_log_
 
 
 def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list | None:
+async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache=False) -> dict | list | None:
     if params is None:
         params = {}
     if not path.startswith("/"):
@@ -63,11 +65,11 @@ def eagle_api(path: str, params=None, connect_type: str = "get") -> dict | list 
     return json_data.get("data")
 
 
-def raload_library(library_path: str):
+async def raload_library(library_path: str):
     params = {"libraryPath": library_path}
-    eagle_api("/api/library/switch", params=params, connect_type="post")
+    await eagle_api("/api/library/switch", params=params, connect_type="post")
 
-    library_info = eagle_api("/api/library/info")
+    library_info = await eagle_api("/api/library/info")
     config["eagle_path"] = library_info["library"]["path"]
     config["library_path"] = config["library_path_list"].copy()
     if (library_info["library"]["path"] in config["library_path_list"] or
@@ -75,12 +77,13 @@ def raload_library(library_path: str):
         config["library_path"].remove(library_info["library"]["path"])
 
 
-library_info = eagle_api("/api/library/info")
-config["eagle_path"] = library_info["library"]["path"]
-config["library_path"] = config["library_path_list"].copy()
-if (library_info["library"]["path"] in config["library_path_list"] or
-        library_info["library"]["path"].replace("\\", "/") in config["library_path_list"]):
-    config["library_path"].remove(library_info["library"]["path"])
+async def run_when_starting_up():
+    library_info = await eagle_api("/api/library/info")
+    config["eagle_path"] = library_info["library"]["path"]
+    config["library_path"] = config["library_path_list"].copy()
+    if (library_info["library"]["path"] in config["library_path_list"] or
+            library_info["library"]["path"].replace("\\", "/") in config["library_path_list"]):
+        config["library_path"].remove(library_info["library"]["path"])
 
 app = FastAPI()
 
@@ -94,7 +97,7 @@ async def eagle_web():
 async def eagle_web(order_by: str = None, folders: str = None, library_path: str = None):
     if library_path is not None and library_path != config["eagle_path"]:
         logger.warning("重新加载资源库数据")
-        raload_library(library_path)
+        await raload_library(library_path)
     if order_by is not None and order_by == "None":
         order_by = None
     if folders is not None and folders == "None":
@@ -110,7 +113,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
 
     # ## 资源库列表 ##
     # 资源库名称
-    library_data = eagle_api("/api/library/info")
+    library_data = await eagle_api("/api/library/info", use_cache=True)
     library_html = ('<a href="#" class="library">'
                     '<img src="api/self_image/icon.png" alt="Sidebar Image" style="width: 30px; height: auto;">'
                     f'{library_data["library"]["name"]}</a>')
@@ -200,7 +203,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
         return to_html
 
-    folder_list = eagle_api("/api/folder/list")
+    folder_list = await eagle_api("/api/folder/list", use_cache=True)
     folder_html = folder_list_to_html(folder_list)
     html_file = html_file.replace("<!-- replace -folder- replace -->", folder_html)
 
@@ -229,9 +232,9 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
     # ## 图片 ##
     images_html = ""
     if folders is not None:
-        item_list: list = eagle_api("/api/item/list", {"folders": folders})
+        item_list: list = await eagle_api("/api/item/list", {"folders": folders}, use_cache=True)
     else:
-        item_list: list = eagle_api("/api/item/list")
+        item_list: list = await eagle_api("/api/item/list", use_cache=True)
 
     # 筛选文件夹
     item_list2 = []
@@ -388,7 +391,7 @@ async def eagle_web(folders: str = None):
 
     # ## 资源库列表 ##
     # 资源库名称
-    library_data = eagle_api("/api/library/info")
+    library_data = await eagle_api("/api/library/info")
     library_html = ('<a href="#" class="library">'
                     '<img src="api/self_image/icon.png" alt="Sidebar Image" style="width: 30px; height: auto;">'
                     f'{library_data["library"]["name"]}</a>')
@@ -443,7 +446,7 @@ async def eagle_web(folders: str = None):
                 to_html += folder_list_to_html(folder["children"], is_children=True, tier=tier + 1)
         return to_html
 
-    folder_list = eagle_api("/api/folder/list")
+    folder_list = await eagle_api("/api/folder/list")
     folder_html = folder_list_to_html(folder_list)
     html_file = html_file.replace("<!-- replace -folder- replace -->", folder_html)
 
@@ -484,7 +487,7 @@ async def eagle_web(folders: str = None):
 @app.get("/api/eagle")
 async def eagle_web(path: str, **params):
     try:
-        data = eagle_api(path, params)
+        data = await eagle_api(path, params)
         return {"status": "success", "data": data}
     except Exception as e:
         return {"status": "error", "message": e, "data": ""}
@@ -553,7 +556,9 @@ async def eagle_web(image_type: str, image_id: str, image_name: str):
 
 
 if __name__ == "__main__":
-    import uvicorn
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_when_starting_up())
 
     uvicorn.run(
         app,
