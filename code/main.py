@@ -336,8 +336,7 @@ async def eagle_web(order_by: str = None, folders: str = None, library_path: str
         if data["isDeleted"] is True:
             continue
         images_html += (
-            f'<img src="/api/image/preview?image_id={data["id"]}&image_name={data["name"]}.{data["ext"]}" '
-            f'alt="{data["name"]}">')
+            f'<img src="/api/image/preview/{data["name"]}.{data["ext"]}?image_id={data["id"]}" alt="{data["name"]}">')
 
     html_file = html_file.replace("<!-- replace -images- replace -->", images_html)
 
@@ -498,7 +497,7 @@ async def eagle_web(image_name: str):
     raise "图片不存在"
 
 
-@app.get("/api/image/{image_type}")
+@app.get("/api/image/{image_type}/{image_name}")
 async def eagle_web(image_type: str, image_id: str, image_name: str):
     eagle_path = config["eagle_path"]
 
