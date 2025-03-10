@@ -74,7 +74,7 @@ async def eagle_api(path: str, params=None, connect_type: str = "get", use_cache
     return json_data.get("data")
 
 
-async def raload_library(library_path: str):
+async def reload_library(library_path: str):
     params = {"libraryPath": library_path}
     await eagle_api("/api/library/switch", params=params, connect_type="post")
 
@@ -107,7 +107,7 @@ async def eagle_web():
 async def eagle_web(order_by: str = None, folders: str = None, library_path: str = None):
     if library_path is not None and library_path != config["eagle_path"]:
         logger.warning("重新加载资源库数据")
-        await raload_library(library_path)
+        await reload_library(library_path)
     if order_by is not None and order_by == "None":
         order_by = None
     if folders is not None and folders == "None":
